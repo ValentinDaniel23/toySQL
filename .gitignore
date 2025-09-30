@@ -1,0 +1,15 @@
+cmake-build-*/*
+.idea/*
+
+*.o
+*.obj
+
+*.exe
+*.out
+*.app
+
+*~
+*.swp
+
+*.d
+*.s
