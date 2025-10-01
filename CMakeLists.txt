@@ -19,6 +19,10 @@ add_executable(client
         src/connection/wqueue.h
         src/connection/TCPStream.cpp
         src/connection/TCPStream.h
+        src/input/repl.h
+        src/input/repl.cpp
+        src/connection/protocol.cpp
+        src/connection/protocol.h
 )
 
 IF (WIN32)

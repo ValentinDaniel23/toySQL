@@ -1,7 +1,10 @@
 #include <iostream>
 #include <string>
+#include <memory>
 #include "connection/Thread.h"
 #include "connection/TCPStream.h"
+#include "connection/protocol.h"
+#include "input/repl.h"
 
 int main() {
     int port = L_PORT_DEFAULT;
@@ -18,28 +21,36 @@ int main() {
     int len;
     std :: string message;
     char line[256];
-    auto connector = new TCPConnector();
-    auto stream = connector->connect(port, ip.c_str());
-    if (stream) {
-        message = "Is there life on Mars?";
-        stream->send(message.c_str(), message.size());
-        printf("sent - %s\n", message.c_str());
-        len = stream->receive(line, sizeof(line));
-        line[len] = 0;
-        printf("received - %s\n", line);
-        delete stream;
+    std :: unique_ptr<TCPConnector> connector = std :: make_unique<TCPConnector>();
+    std :: unique_ptr<TCPStream> stream(connector->connect(port, ip.c_str()));
+
+    InputBuffer input_buffer = InputBuffer();
+
+    if (stream == nullptr) {
+        std :: cerr << "no connection\n";
+        return 0;
     }
 
-    stream = connector->connect(port, ip.c_str());
-    if (stream) {
-        message = "Why is there air?";
-        stream->send(message.c_str(), message.size());
-        printf("sent - %s\n", message.c_str());
-        len = stream->receive(line, sizeof(line));
-        line[len] = 0;
-        printf("received - %s\n", line);
-        delete stream;
+    while (true) {
+        print_prompt();
+        read_input(input_buffer);
+
+        if ("exit" == input_buffer.get())
+            break;
+
+        if (!input_buffer.get().empty()) {
+
+            Lexer l(input_buffer.get());
+            Parser p(l);
+
+            p.parse();
+
+            stream->send(input_buffer.get().c_str(), input_buffer.get().size());
+            len = stream->receive(line, sizeof(line));
+            line[len] = 0;
+            printf("received - %s\n", line);
+        }
     }
 
-    exit(0);
+    return 0;
 }

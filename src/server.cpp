@@ -13,6 +13,8 @@ int main() {
         workers = 4;
     }
 
+    workers = 1;
+
 #ifdef WIN32
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -48,5 +50,5 @@ int main() {
         queue.add(item);
     }
 
-    exit(0);
+    return 0;
 }
