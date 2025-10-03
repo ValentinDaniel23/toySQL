@@ -33,11 +33,6 @@ add_executable(client
         src/connection/protocol.h
 )
 
-IF (WIN32)
-    target_link_libraries(server ws2_32 nlohmann_json::nlohmann_json)
-    target_link_libraries(client ws2_32 nlohmann_json::nlohmann_json)
-endif ()
-
 target_compile_definitions(server PRIVATE
         L_PORT_DEFAULT=12346
         L_IP_DEFAULT="127.0.0.1"
@@ -47,3 +42,36 @@ target_compile_definitions(client PRIVATE
         L_PORT_DEFAULT=12346
         L_IP_DEFAULT="127.0.0.1"
 )
+
+
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.14.0
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
+# ---- Tests ----
+add_executable(tests
+        src/tests/test_serialize.cpp
+        src/connection/protocol.cpp
+        src/connection/protocol.h
+)
+
+target_link_libraries(tests
+        GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(tests)
+
+
+IF (WIN32)
+    target_link_libraries(server ws2_32 nlohmann_json::nlohmann_json)
+    target_link_libraries(client ws2_32 nlohmann_json::nlohmann_json)
+    target_link_libraries(tests ws2_32 nlohmann_json::nlohmann_json)
+endif ()

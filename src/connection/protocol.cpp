@@ -76,10 +76,10 @@ Token Lexer::literal() {
 
 json Parser::serialize() {
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (currentToken.value.size() != 6)
-        return json{};
+        return json::object();;
 
     std::unordered_map<std::string, std::function<json()>> commands = {
         {"CREATE", [this]() { return this->Create(); }},
@@ -90,16 +90,12 @@ json Parser::serialize() {
     };
 
     for (const auto& obj : commands) {
-        if (checkWords(currentToken.value, obj.first))
+        if (checkWords(currentToken.value, obj.first)) {
             return obj.second();
+        }
     }
 
-    // while (currentToken.type != ToySQLTokenType::END) {
-    //     std :: cout << currentToken.value << ";";
-    //     currentToken = lexer.nextToken();
-    // }
-
-    return json{};
+    return json::object();;
 }
 
 json Parser::Create() {
@@ -110,22 +106,22 @@ json Parser::Create() {
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "TABLE"))
-        return json{};
+        return json::object();;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     obj["table_name"] = currentToken.value;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::OpenBracket)
-        return json{};
+        return json::object();;
 
     obj["columns"] = json::array();
 
@@ -134,18 +130,22 @@ json Parser::Create() {
 
         currentToken = lexer.nextToken();
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
         colName = currentToken.value;
 
         currentToken = lexer.nextToken();
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
+
         colType = currentToken.value;
 
-        obj["columns"].push_back({colName, colType});
+        if (checkWords(colType, "INT"))
+            colType = "INT";
+        else if (checkWords(colType, "TEXT"))
+            colType = "TEXT";
+        else return json::object();
 
-        if (!checkWords(colType, "INT") && !checkWords(colType, "TEXT"))
-            return json{};
+        obj["columns"].push_back({colName, colType});
 
         currentToken = lexer.nextToken();
         if (currentToken.type == ToySQLTokenType::CloseBracket)
@@ -153,13 +153,13 @@ json Parser::Create() {
         if (currentToken.type == ToySQLTokenType::Comma)
             continue;
 
-        return json{};
+        return json::object();;
     }
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::END)
-        return json{};
+        return json::object();;
 
     return obj;
 }
@@ -172,30 +172,30 @@ json Parser::Insert() {
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "INTO"))
-        return json{};
+        return json::object();;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     obj["table_name"] = currentToken.value;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "VALUES"))
-        return json{};
+        return json::object();;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::OpenBracket)
-        return json{};
+        return json::object();;
 
     obj["values"] = json::array();
 
@@ -205,7 +205,7 @@ json Parser::Insert() {
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Number && currentToken.type != ToySQLTokenType::Literal)
-            return json{};
+            return json::object();;
 
         colValue = currentToken.value;
 
@@ -217,13 +217,13 @@ json Parser::Insert() {
         if (currentToken.type == ToySQLTokenType::Comma)
             continue;
 
-        return json{};
+        return json::object();;
     }
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::END)
-        return json{};
+        return json::object();;
 
     return obj;
 }
@@ -232,6 +232,7 @@ json Parser::Select() {
     json obj{};
 
     obj["op"] = "select";
+    obj["where"] = json::array();
 
     currentToken = lexer.nextToken();
 
@@ -249,7 +250,7 @@ json Parser::Select() {
             currentToken = lexer.nextToken();
 
             if (currentToken.type != ToySQLTokenType::Word)
-                return json{};
+                return json::object();;
 
             obj["columns"].push_back(currentToken.value);
         }
@@ -258,16 +259,16 @@ json Parser::Select() {
 
         currentToken = lexer.nextToken();
     } else {
-        return json{};
+        return json::object();;
     }
 
     if (!checkWords(currentToken.value, "FROM"))
-        return json{};
+        return json::object();;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     obj["table_name"] = currentToken.value;
 
@@ -277,31 +278,29 @@ json Parser::Select() {
         return obj;
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "WHERE"))
-        return json{};
-
-    obj["where"] = json::array();
+        return json::object();;
 
     while (1) {
         std :: string key, value;
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
 
         key = currentToken.value;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Equal)
-            return json{};
+            return json::object();;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Number && currentToken.type != ToySQLTokenType::Literal)
-            return json{};
+            return json::object();;
 
         value = currentToken.value;
 
@@ -314,7 +313,7 @@ json Parser::Select() {
     }
 
     if (currentToken.type != ToySQLTokenType::END)
-        return json{};
+        return json::object();;
 
     return obj;
 }
@@ -323,21 +322,22 @@ json Parser::Update() {
     json obj{};
 
     obj["op"] = "update";
+    obj["where"] = json::array();
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     obj["table_name"] = currentToken.value;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "SET"))
-        return json{};
+        return json::object();;
 
     obj["values"] = json::array();
 
@@ -347,19 +347,19 @@ json Parser::Update() {
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
 
         key = currentToken.value;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Equal)
-            return json{};
+            return json::object();;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Number && currentToken.type != ToySQLTokenType::Literal)
-            return json{};
+            return json::object();;
 
         value = currentToken.value;
 
@@ -377,31 +377,29 @@ json Parser::Update() {
         return obj;
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "WHERE"))
-        return json{};
-
-    obj["where"] = json::array();
+        return json::object();;
 
     while (1) {
         std :: string key, value;
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
 
         key = currentToken.value;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Equal)
-            return json{};
+            return json::object();;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Number && currentToken.type != ToySQLTokenType::Literal)
-            return json{};
+            return json::object();;
 
         value = currentToken.value;
 
@@ -414,7 +412,7 @@ json Parser::Update() {
     }
 
     if (currentToken.type != ToySQLTokenType::END)
-        return json{};
+        return json::object();;
 
     return obj;
 }
@@ -423,19 +421,20 @@ json Parser::Delete() {
     json obj{};
 
     obj["op"] = "delete";
+    obj["where"] = json::array();
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "FROM"))
-        return json{};
+        return json::object();;
 
     currentToken = lexer.nextToken();
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     obj["table_name"] = currentToken.value;
 
@@ -445,31 +444,29 @@ json Parser::Delete() {
         return obj;
 
     if (currentToken.type != ToySQLTokenType::Word)
-        return json{};
+        return json::object();;
 
     if (!checkWords(currentToken.value, "WHERE"))
-        return json{};
-
-    obj["where"] = json::array();
+        return json::object();;
 
     while (1) {
         std :: string key, value;
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Word)
-            return json{};
+            return json::object();;
 
         key = currentToken.value;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Equal)
-            return json{};
+            return json::object();;
 
         currentToken = lexer.nextToken();
 
         if (currentToken.type != ToySQLTokenType::Number && currentToken.type != ToySQLTokenType::Literal)
-            return json{};
+            return json::object();;
 
         value = currentToken.value;
 
@@ -482,7 +479,7 @@ json Parser::Delete() {
     }
 
     if (currentToken.type != ToySQLTokenType::END)
-        return json{};
+        return json::object();;
 
     return obj;
 }
