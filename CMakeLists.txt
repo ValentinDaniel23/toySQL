@@ -3,6 +3,14 @@ project(toySQL)
 
 set(CMAKE_CXX_STANDARD 20)
 
+include(FetchContent)
+FetchContent_Declare(
+        json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(json)
+
 add_executable(server
         src/server.cpp
         src/connection/Thread.cpp
@@ -26,8 +34,8 @@ add_executable(client
 )
 
 IF (WIN32)
-    target_link_libraries(server ws2_32)
-    target_link_libraries(client ws2_32)
+    target_link_libraries(server ws2_32 nlohmann_json::nlohmann_json)
+    target_link_libraries(client ws2_32 nlohmann_json::nlohmann_json)
 endif ()
 
 target_compile_definitions(server PRIVATE
