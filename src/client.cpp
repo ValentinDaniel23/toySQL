@@ -43,12 +43,14 @@ int main() {
             Lexer l(input_buffer.get());
             Parser p(l);
 
-            p.parse();
+            auto json = p.serialize();
 
-            stream->send(input_buffer.get().c_str(), input_buffer.get().size());
-            len = stream->receive(line, sizeof(line));
-            line[len] = 0;
-            printf("received - %s\n", line);
+            std :: cout << json << '\n';
+
+            // stream->send(input_buffer.get().c_str(), input_buffer.get().size());
+            // len = stream->receive(line, sizeof(line));
+            // line[len] = 0;
+            // printf("received - %s\n", line);
         }
     }
 
