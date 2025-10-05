@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(toySQL)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -31,6 +31,7 @@ add_executable(client
         src/input/repl.cpp
         src/connection/protocol.cpp
         src/connection/protocol.h
+        src/storage/tuple.cpp
 )
 
 target_compile_definitions(server PRIVATE
@@ -56,22 +57,33 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 # ---- Tests ----
-add_executable(tests
+# Test Serialize
+add_executable(testsSerialize
         src/tests/test_serialize.cpp
         src/connection/protocol.cpp
         src/connection/protocol.h
 )
 
-target_link_libraries(tests
-        GTest::gtest_main
+#Tests BTree
+add_executable(testsBTree
+        src/tests/test_btree.cpp
 )
 
-include(GoogleTest)
-gtest_discover_tests(tests)
-
+#Tests OS_API
+add_executable(testsOS_API
+        src/tests/test_OS_API.cpp
+        src/OS/specificOS.h
+)
 
 IF (WIN32)
     target_link_libraries(server ws2_32 nlohmann_json::nlohmann_json)
     target_link_libraries(client ws2_32 nlohmann_json::nlohmann_json)
-    target_link_libraries(tests ws2_32 nlohmann_json::nlohmann_json)
+    target_link_libraries(testsSerialize ws2_32 nlohmann_json::nlohmann_json GTest::gtest_main)
+    target_link_libraries(testsBTree ws2_32 nlohmann_json::nlohmann_json GTest::gtest_main)
+    target_link_libraries(testsOS_API ws2_32 GTest::gtest_main)
 endif ()
+
+include(GoogleTest)
+gtest_discover_tests(testsSerialize)
+gtest_discover_tests(testsBTree)
+gtest_discover_tests(testsOS_API)

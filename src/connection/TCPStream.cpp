@@ -1,6 +1,8 @@
 #include <iostream>
 #include "TCPStream.h"
 
+#include "protocol.h"
+
 TCPStream::TCPStream(socket_t sd, sockaddr_in* address) : m_sd(sd) {
     char ip[50];
     inet_ntop(PF_INET, (in_addr*)&(address->sin_addr.s_addr),
@@ -107,26 +109,25 @@ TCPStream* TCPAcceptor::accept()
 }
 
 void * ConnectionHandler::run() {
+    std :: cout << "Running thread: " << this->self() << '\n';
 
     for (int i = 0;; i++) {
-        printf("thread %lu, loop %d - waiting for item...\n",
-               (long unsigned int)self(), i);
-
         std::unique_ptr<WorkItem> item(m_queue.remove());
-
-        printf("thread %lu, loop %d - got one item\n",
-               (long unsigned int)self(), i);
 
         const auto stream = item->getStream();
 
         // Echo messages back the client until the connection is closed
         char input[256];
         ssize_t len;
+
         while ((len = stream->receive(input, sizeof(input)-1)) > 0 ){
             input[len] = 0;
-            stream->send(input, len);
-            printf("thread %lu, echoed '%s' back to the client\n",
-                   (long unsigned int)self(), input);
+            auto json = json::parse(input);
+
+            std :: cout << "Thread: " << this->self() << " received " << json.dump(4) << '\n';
+
+            std::string response = R"({"status":"ok"})";
+            auto _ = stream->send(response.c_str(), response.size());
         }
     }
 

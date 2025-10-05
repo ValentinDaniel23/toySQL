@@ -18,9 +18,6 @@ int main() {
     }
 #endif
 
-    int len;
-    std :: string message;
-    char line[256];
     std :: unique_ptr<TCPConnector> connector = std :: make_unique<TCPConnector>();
     std :: unique_ptr<TCPStream> stream(connector->connect(port, ip.c_str()));
 
@@ -45,12 +42,15 @@ int main() {
 
             auto json = p.serialize();
 
-            std :: cout << json << '\n';
+            auto _ = stream->send(json.dump().c_str(), json.dump().length());
 
-            // stream->send(input_buffer.get().c_str(), input_buffer.get().size());
-            // len = stream->receive(line, sizeof(line));
-            // line[len] = 0;
-            // printf("received - %s\n", line);
+            char line[256];
+            ssize_t len = stream->receive(line, sizeof(line));
+            line[len] = 0;
+
+            json = json::parse(line);
+
+            std :: cout << json.dump().c_str() << '\n';
         }
     }
 
