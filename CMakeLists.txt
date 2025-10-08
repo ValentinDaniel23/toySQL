@@ -68,6 +68,7 @@ add_executable(testsSerialize
 add_executable(testsStorage
         src/tests/test_storage.cpp
         src/storage/tuple.cpp
+        src/storage/page.cpp
 )
 
 #Tests OS_API
@@ -80,7 +81,7 @@ IF (WIN32)
     target_link_libraries(server ws2_32 nlohmann_json::nlohmann_json)
     target_link_libraries(client ws2_32 nlohmann_json::nlohmann_json)
     target_link_libraries(testsSerialize ws2_32 nlohmann_json::nlohmann_json GTest::gtest_main)
-    target_link_libraries(testsStorage ws2_32 nlohmann_json::nlohmann_json GTest::gtest_main)
+    target_link_libraries(testsStorage ws2_32 GTest::gtest_main)
     target_link_libraries(testsOS_API ws2_32 GTest::gtest_main)
 endif ()
 
