@@ -7,28 +7,9 @@
 #include <fstream>
 #include <unordered_map>
 #include <list>
+#include <iostream>
 #include "../OS/specificOS.h"
-
-#define COLUMN_STRING 255
-
-struct Row {
-    uint32_t id{};
-    uint8_t text_size{};
-    std::array<char, 255> text{};
-
-    static constexpr std::size_t ROW_SIZE = sizeof(id) + sizeof(text_size) + sizeof(text);   // alignment
-
-    [[nodiscard]] std::array<char, ROW_SIZE> serialize() const;
-    static Row deserialize(const std::array<char, ROW_SIZE>& buffer);
-};
-
-constexpr std::size_t ID_OFFSET       = offsetof(Row, id);
-constexpr std::size_t TEXT_SIZE_OFFSET = offsetof(Row, text_size);
-constexpr std::size_t TEXT_OFFSET = offsetof(Row, text);
-constexpr std::size_t ROW_SIZE = Row::ROW_SIZE;
-
-constexpr uint32_t FILE_PAGES_NUM = 128;
-constexpr uint32_t PAGE_SIZE = 4096;
+#include "btree.h"
 
 struct CacheEntry {
     uint32_t page_num;
@@ -40,9 +21,6 @@ class PageCache {
     friend class Pager;
 
     PageCache(size_t max) : max_pages(max) {}
-
-    // read tuple, index
-    // write tuple, index
 
     CacheEntry* get_page(uint32_t page_num);
     CacheEntry* add_page(CacheEntry* page);
@@ -68,19 +46,28 @@ class PageCache {
 
 class Pager {
 public:
-    Pager(const char* filename, size_t cache_size);
-    CacheEntry* get_page(uint32_t page_num);
+    friend class Table;
+    // Pager(const char* filename, size_t cache_size);
+    // CacheEntry* get_page(uint32_t page_num);
+    // void flush_all();
+
     void flush_all();
 
 private:
+    Pager(const char* filename, size_t cache_size);
+    CacheEntry* get_page(uint32_t page_num);
+
     std::fstream file;
     PageCache cache;
 };
 
 class Table {
-    Pager pager;
+public:
 
-    Table(const char* filename, size_t cache_size) : pager(filename, cache_size) {}
+    Pager pager;
+    const char *filename;
+
+    Table(const char* filename, size_t cache_size) : filename{filename}, pager(filename, cache_size) {}
 };
 
 #endif //TOYSQL_DS_H

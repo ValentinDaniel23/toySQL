@@ -50,10 +50,6 @@ TEST(StorageTest, pager) {
         // pager.flush_all();
     }
 
-    {
-
-    }
-
     int x = 1;
 
     EXPECT_EQ(x, 1);
