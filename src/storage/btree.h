@@ -58,6 +58,7 @@ constexpr size_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + sizeof(uint8_t);
 constexpr size_t COMMON_NODE_HEADER_SIZE = PARENT_POINTER_OFFSET + sizeof(uint32_t);
 
 //  LEAF HEADER  //
+// const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t);
 constexpr size_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE;
 constexpr size_t LEAF_NODE_HEADER_SIZE = LEAF_NODE_NUM_CELLS_OFFSET + sizeof(uint32_t);
 

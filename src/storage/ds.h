@@ -47,27 +47,49 @@ class PageCache {
 class Pager {
 public:
     friend class Table;
-    // Pager(const char* filename, size_t cache_size);
-    // CacheEntry* get_page(uint32_t page_num);
-    // void flush_all();
 
+    CacheEntry* get_page(uint32_t page_num);
     void flush_all();
 
 private:
     Pager(const char* filename, size_t cache_size);
-    CacheEntry* get_page(uint32_t page_num);
 
     std::fstream file;
     PageCache cache;
 };
 
+class Cursor {
+public:
+    friend class Table;
+
+    Pager& pager;
+    uint32_t page_num;
+    uint32_t cell_num;
+    bool end_of_table;
+
+    [[nodiscard]] Row* value() const;
+    void advance();
+
+private:
+    [[nodiscard]] CacheEntry* current_page() const;
+
+    Cursor(Pager &pager) : pager(pager), page_num(0), cell_num(0), end_of_table(false) {}
+    Cursor(Pager &pager, uint32_t page_num, uint32_t cell_num, bool end = false)
+        : pager(pager), page_num(page_num), cell_num(cell_num), end_of_table(end) {}
+};
+
 class Table {
 public:
-
     Pager pager;
     const char *filename;
 
     Table(const char* filename, size_t cache_size) : filename{filename}, pager(filename, cache_size) {}
+
+    void leaf_node_insert(Cursor& cursor, uint32_t key, Row *row);
+
+    Cursor make_cursor(uint32_t page_num = 0, uint32_t cell_num = 0) {
+        return Cursor{pager, page_num, cell_num};
+    }
 };
 
 #endif //TOYSQL_DS_H

@@ -31,6 +31,34 @@ TEST(StorageTest, pager) {
 
     std :: cout << path << '\n';
 
+    Table table{path.c_str(), 4};
+    Cursor cursor = table.make_cursor();
+
+    while (!cursor.end_of_table) {
+        Row *row = cursor.value();
+        std :: cout << row->id << ' ' << row->text.data() << '\n';
+
+        cursor.advance();
+    }
+
+    // Cursor cursor1 = table.make_cursor();
+    // Cursor cursor2 = table.make_cursor(0, 0);
+    // Cursor cursor3 = table.make_cursor(0, 1);
+    //
+    // Row *row1 = new Row{10, 6, "Hello!"};
+    // Row *row2 = new Row{8, 16, "Michael Jackson!"};
+    // Row *row3 = new Row{18, 3, "Lol"};
+    //
+    // table.leaf_node_insert(cursor1, row1->id, row1);
+    // table.leaf_node_insert(cursor1, row2->id, row2);
+    // table.leaf_node_insert(cursor1, row3->id, row3);
+    //
+    // table.pager.flush_all();
+    //
+    // delete row1;
+    // delete row2;
+    // delete row3;
+
     {
         // Pager pager(path.c_str(), 10);
         //

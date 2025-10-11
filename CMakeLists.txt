@@ -69,6 +69,7 @@ add_executable(testsStorage
         src/tests/test_storage.cpp
         src/storage/tuple.cpp
         src/storage/page.cpp
+        src/storage/btree.cpp
 )
 
 #Tests OS_API
