@@ -11,6 +11,8 @@
 #include "../OS/specificOS.h"
 #include "btree.h"
 
+void init_leaf_node(char* node);
+
 struct CacheEntry {
     uint32_t page_num;
     std::array<char, PAGE_SIZE> data;
@@ -82,10 +84,15 @@ class Table {
 public:
     Pager pager;
     const char *filename;
+    uint32_t root_page_num = 0;
 
-    Table(const char* filename, size_t cache_size) : filename{filename}, pager(filename, cache_size) {}
+    Table(const char* filename, size_t cache_size) : pager(filename, cache_size), filename{filename} {}
 
     void leaf_node_insert(Cursor& cursor, uint32_t key, Row *row);
+    Cursor table_find(uint32_t key);
+    Cursor leaf_node_find(uint32_t page_num, uint32_t key);
+
+    void initialize_leaf_node(char *);
 
     Cursor make_cursor(uint32_t page_num = 0, uint32_t cell_num = 0) {
         return Cursor{pager, page_num, cell_num};

@@ -52,10 +52,15 @@ Each page = PAGE_SIZE bytes (e.g., 4096)
 */
 
 //  COMMON HEADER  //
+constexpr size_t NODE_TYPE_SIZE = sizeof(NodeType);
+constexpr size_t IS_ROOT_SIZE = sizeof(uint8_t);
+constexpr size_t PARENT_POINTER_SIZE = sizeof(uint32_t);
+
 constexpr size_t NODE_TYPE_OFFSET      = 0;
-constexpr size_t IS_ROOT_OFFSET        = NODE_TYPE_OFFSET + sizeof(uint8_t);
-constexpr size_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + sizeof(uint8_t);
-constexpr size_t COMMON_NODE_HEADER_SIZE = PARENT_POINTER_OFFSET + sizeof(uint32_t);
+constexpr size_t IS_ROOT_OFFSET        = NODE_TYPE_SIZE;
+constexpr size_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + IS_ROOT_SIZE;
+
+constexpr size_t COMMON_NODE_HEADER_SIZE = NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE;
 
 //  LEAF HEADER  //
 // const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t);
