@@ -40,19 +40,15 @@ TEST(StorageTest, basicLeafTest) {
     Cursor cursor2 = table.make_cursor(0, 0);
     Cursor cursor3 = table.make_cursor(0, 1);
 
-    Row *row1 = new Row{10, 6, "Hello!"};
-    Row *row2 = new Row{8, 16, "Michael Jackson!"};
-    Row *row3 = new Row{18, 3, "Lol"};
+    std :: unique_ptr<Row> row1 = std::make_unique<Row>(Row{10, 6, "Hello!"});
+    std :: unique_ptr<Row> row2 = std::make_unique<Row>(Row{8, 16, "Michael Jackson!"});
+    std :: unique_ptr<Row> row3 = std::make_unique<Row>(Row{18, 3, "Lol"});
 
-    table.leaf_node_insert(cursor1, row1->id, row1);
-    table.leaf_node_insert(cursor2, row2->id, row2);
-    table.leaf_node_insert(cursor3, row3->id, row3);
+    table.leaf_node_insert(cursor1, row1->id, row1.get());
+    table.leaf_node_insert(cursor2, row2->id, row2.get());
+    table.leaf_node_insert(cursor3, row3->id, row3.get());
 
     table.pager.flush_all();
-
-    delete row1;
-    delete row2;
-    delete row3;
 
     Cursor cursor = table.make_cursor();
     Row *row = nullptr;
@@ -95,43 +91,36 @@ TEST(StorageTest, basicSortedLeafTest) {
     }
 
     Table table{path.c_str(), 3};
-    init_leaf_node(table.pager.get_page(0)->data.data());
+    initialize_leaf_node(table.pager.get_page(0)->data.data());
+    set_node_root(table.pager.get_page(0)->data.data(), true);
 
-    Row *row1 = new Row{10, 6, "Hello!"};
-    Row *row2 = new Row{8, 16, "Michael Jackson!"};
-    Row *row3 = new Row{18, 3, "Lol"};
-    Row* row4 = new Row{5, 12, "Good morning"};
-    Row* row5 = new Row{12, 10, "OpenAI GPT"};
-    Row* row6 = new Row{20, 9, "C++ rocks"};
+    std :: unique_ptr<Row> row1 = std::make_unique<Row>(Row{10, 6, "Hello!"});
+    std :: unique_ptr<Row> row2 = std::make_unique<Row>(Row{8, 16, "Michael Jackson!"});
+    std :: unique_ptr<Row> row3 = std::make_unique<Row>(Row{18, 3, "Lol"});
+    std :: unique_ptr<Row> row4 = std::make_unique<Row>(Row{5, 12, "Good morning"});
+    std :: unique_ptr<Row> row5 = std::make_unique<Row>(Row{12, 10, "OpenAI GPT"});
+    std :: unique_ptr<Row> row6 = std::make_unique<Row>(Row{20, 9, "C++ rocks"});
 
     Cursor cursor1 = table.table_find(10);
-    table.leaf_node_insert(cursor1, row1->id, row1);
+    table.leaf_node_insert(cursor1, row1->id, row1.get());
 
     Cursor cursor2 = table.table_find(8);
-    table.leaf_node_insert(cursor2, row2->id, row2);
+    table.leaf_node_insert(cursor2, row2->id, row2.get());
 
     Cursor cursor3 = table.table_find(18);
-    table.leaf_node_insert(cursor3, row3->id, row3);
+    table.leaf_node_insert(cursor3, row3->id, row3.get());
 
     Cursor cursor4 = table.table_find(5);
-    table.leaf_node_insert(cursor4, row4->id, row4);
+    table.leaf_node_insert(cursor4, row4->id, row4.get());
 
     Cursor cursor5 = table.table_find(12);
-    table.leaf_node_insert(cursor5, row5->id, row5);
+    table.leaf_node_insert(cursor5, row5->id, row5.get());
 
     Cursor cursor6 = table.table_find(20);
-    table.leaf_node_insert(cursor6, row6->id, row6);
+    table.leaf_node_insert(cursor6, row6->id, row6.get());
 
     table.pager.flush_all();
-
-    delete row1;
-    delete row2;
-    delete row3;
-    delete row4;
-    delete row5;
-    delete row6;
-
-    EXPECT_EQ(1, 1);
+    table.print_tree(0, 0);
 
     Cursor cursor = table.make_cursor();
     Row *row = nullptr;

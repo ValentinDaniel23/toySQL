@@ -50,6 +50,10 @@ CacheEntry* Pager::get_page(uint32_t page_num) {
         delete ret;
     }
 
+    if (page_num == get_unused_page()) {
+        num_pages++;
+    }
+
     return CEntry;
 }
 

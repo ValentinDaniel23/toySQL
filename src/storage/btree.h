@@ -9,7 +9,7 @@ struct Row {
     uint8_t text_size{};
     std::array<char, 255> text{};
 
-    static constexpr std::size_t ROW_SIZE = sizeof(id) + sizeof(text_size) + sizeof(text);   // alignment
+    static constexpr std::uint32_t ROW_SIZE = sizeof(id) + sizeof(text_size) + sizeof(text);   // alignment
 
     [[nodiscard]] std::array<char, ROW_SIZE> serialize() const;
     static Row deserialize(const std::array<char, ROW_SIZE>& buffer);
@@ -17,10 +17,10 @@ struct Row {
 
 #define COLUMN_STRING 255
 
-constexpr size_t ID_OFFSET       = offsetof(Row, id);
-constexpr size_t TEXT_SIZE_OFFSET = offsetof(Row, text_size);
-constexpr size_t TEXT_OFFSET = offsetof(Row, text);
-constexpr size_t ROW_SIZE = Row::ROW_SIZE;
+constexpr uint32_t ID_OFFSET       = offsetof(Row, id);
+constexpr uint32_t TEXT_SIZE_OFFSET = offsetof(Row, text_size);
+constexpr uint32_t TEXT_OFFSET = offsetof(Row, text);
+constexpr uint32_t ROW_SIZE = Row::ROW_SIZE;
 
 enum class NodeType : uint8_t {
     INTERNAL,
@@ -52,24 +52,29 @@ Each page = PAGE_SIZE bytes (e.g., 4096)
 */
 
 //  COMMON HEADER  //
-constexpr size_t NODE_TYPE_SIZE = sizeof(NodeType);
-constexpr size_t IS_ROOT_SIZE = sizeof(uint8_t);
-constexpr size_t PARENT_POINTER_SIZE = sizeof(uint32_t);
+constexpr uint32_t NODE_TYPE_SIZE = sizeof(NodeType);
+constexpr uint32_t IS_ROOT_SIZE = sizeof(uint8_t);
+constexpr uint32_t PARENT_POINTER_SIZE = sizeof(uint32_t);
 
-constexpr size_t NODE_TYPE_OFFSET      = 0;
-constexpr size_t IS_ROOT_OFFSET        = NODE_TYPE_SIZE;
-constexpr size_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + IS_ROOT_SIZE;
+constexpr uint32_t NODE_TYPE_OFFSET      = 0;
+constexpr uint32_t IS_ROOT_OFFSET        = NODE_TYPE_SIZE;
+constexpr uint32_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + IS_ROOT_SIZE;
 
-constexpr size_t COMMON_NODE_HEADER_SIZE = NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE;
+constexpr uint32_t COMMON_NODE_HEADER_SIZE = NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE;
 
 //  LEAF HEADER  //
-// const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t);
-constexpr size_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE;
-constexpr size_t LEAF_NODE_HEADER_SIZE = LEAF_NODE_NUM_CELLS_OFFSET + sizeof(uint32_t);
+constexpr uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t);
+
+constexpr uint32_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE;
+constexpr uint32_t LEAF_NODE_HEADER_SIZE = LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE;
 
 //  INTERNAL HEADER  //
-constexpr size_t INTERNAL_RIGHT_CHILD_OFFSET = COMMON_NODE_HEADER_SIZE + sizeof(uint32_t);
-// constexpr size_t INTERNAL_NODE_HEADER_SIZE = INTERNAL_RIGHT_CHILD_OFFSET + sizeof(uint32_t);
+constexpr uint32_t INTERNAL_NODE_NUM_KEYS_SIZE = sizeof(uint32_t);
+constexpr uint32_t INTERNAL_NODE_RIGHT_CHILD_SIZE = sizeof(uint32_t);
+
+constexpr uint32_t INTERNAL_NODE_NUM_KEYS_OFFSET = COMMON_NODE_HEADER_SIZE;
+constexpr uint32_t INTERNAL_NODE_RIGHT_CHILD_OFFSET = INTERNAL_NODE_NUM_KEYS_OFFSET + INTERNAL_NODE_NUM_KEYS_SIZE;
+constexpr uint32_t INTERNAL_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + INTERNAL_NODE_NUM_KEYS_SIZE + INTERNAL_NODE_RIGHT_CHILD_SIZE;
 
 //  LEAF NODE BODY LAYOUT  //
 constexpr uint32_t LEAF_NODE_KEY_SIZE = sizeof(uint32_t);
@@ -79,5 +84,14 @@ constexpr uint32_t LEAF_NODE_VALUE_OFFSET = LEAF_NODE_KEY_OFFSET + LEAF_NODE_KEY
 constexpr uint32_t LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE;
 constexpr uint32_t LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
 constexpr uint32_t LEAF_NODE_MAX_CELLS = LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
+
+constexpr uint32_t LEAF_NODE_RIGHT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) / 2;
+constexpr uint32_t LEAF_NODE_LEFT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) - LEAF_NODE_RIGHT_SPLIT_COUNT;
+
+//  INTERNAL NODE BODY LAYOUT  //
+constexpr uint32_t INTERNAL_NODE_KEY_SIZE = sizeof(uint32_t);
+constexpr uint32_t INTERNAL_NODE_CHILD_SIZE = sizeof(uint32_t);
+
+constexpr uint32_t INTERNAL_NODE_CELL_SIZE = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE;
 
 #endif //TOYSQL_BTREE_H
