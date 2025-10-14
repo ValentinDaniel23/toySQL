@@ -99,6 +99,7 @@ public:
     void leaf_node_insert(Cursor& cursor, uint32_t key, Row *row);
     Cursor table_find(uint32_t key);
     Cursor leaf_node_find(uint32_t page_num, uint32_t key);
+    Cursor internal_node_find(uint32_t page_num, uint32_t key);
 
     void print_tree(uint32_t page_num, uint32_t indentation_level);
 

@@ -42,7 +42,7 @@ inline uint32_t* internal_node_cell(char* node, uint32_t cell_num) {
 inline uint32_t* internal_node_child(char* node, uint32_t child_num) {
     uint32_t num_keys = *internal_node_num_keys(node);
     if (child_num > num_keys) {
-        std :: cerr << "trying to access a child past num_keys\n";
+        std :: cerr << "trying to access a child past num_keys in internal_node_child\n";
         exit(EXIT_FAILURE);
     } else if (child_num == num_keys) {
         return internal_node_right_child(node);
@@ -62,8 +62,8 @@ inline uint32_t get_node_max_key(char* node) {
         case NodeType::LEAF:
             return *leaf_node_key(node, *leaf_node_num_cells(node) - 1);
         default:
-            std :: cout << "WRONG MAX KEY\n";
-            return 0;
+            std :: cerr << "wrong max key in get_node_max_key";
+            exit(EXIT_FAILURE);
     }
 }
 
@@ -113,11 +113,52 @@ void Cursor::advance() {
 
 /////////////////////////////////////////////////////////////
 
+Cursor Table::internal_node_find(uint32_t page_num, uint32_t key) {
+    CacheEntry* CEntry = pager.get_page(page_num);
+    char* data = CEntry->data.data();
+    uint32_t num_keys = *internal_node_num_keys(data);
+
+    uint32_t ans = num_keys;
+
+    if (num_keys != 0) {
+        uint32_t min_index = 0;
+        uint32_t max_index = num_keys - 1;
+
+        while (min_index <= max_index) {
+            uint32_t index = (min_index + max_index) / 2;
+            uint32_t key_to_right = *internal_node_key(data, index);
+
+            if (key <= key_to_right) {
+                ans = index;
+                if (index == 0)
+                    break;
+                max_index = index - 1;
+            } else {
+                min_index = index + 1;
+            }
+        }
+    }
+
+    uint32_t child_num = *internal_node_child(data, ans);
+    CacheEntry* CEntryChinld = pager.get_page(child_num);
+    char* dataChild = CEntryChinld->data.data();
+
+    switch (get_node_type(dataChild)) {
+        case NodeType::LEAF:
+            return leaf_node_find(child_num, key);
+        case NodeType::INTERNAL:
+            return internal_node_find(child_num, key);
+        default:
+            std :: cerr << "error child type\n";
+            exit(EXIT_FAILURE);
+    }
+}
+
 void Table::create_new_root(uint32_t right_child_page_num) {
     CacheEntry* CEntryRoot = pager.get_page(root_page_num);
-    CacheEntry* CEntryRightChild = pager.get_page(root_page_num);
+    CacheEntry* CEntryRightChild = pager.get_page(right_child_page_num);
     uint32_t left_child_page_num = pager.get_unused_page();
-    CacheEntry* CEntryLeftChild = pager.get_page(root_page_num);
+    CacheEntry* CEntryLeftChild = pager.get_page(left_child_page_num);
 
     char *root = CEntryRoot->data.data();
     char *left_child = CEntryLeftChild->data.data();
@@ -140,7 +181,7 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
     char *old_data = CEntry->data.data();
 
     uint32_t new_page_num = pager.get_unused_page();
-    CacheEntry* New_CEntry = pager.get_page(cursor.page_num);
+    CacheEntry* New_CEntry = pager.get_page(new_page_num);
     char *new_data = New_CEntry->data.data();
 
     initialize_leaf_node(new_data);
@@ -159,12 +200,12 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
 
         if (i == cursor.cell_num) {
             std :: array<char, ROW_SIZE> buffer = row->serialize();
-            memcpy(destination, buffer.data(), ROW_SIZE);
-            *leaf_node_key(destination_node, index_within_node) = key;
+            memcpy(destination + LEAF_NODE_KEY_SIZE, buffer.data(), ROW_SIZE);
+            *reinterpret_cast<uint32_t*>(destination) = key;
         } else if (i > cursor.cell_num) {
             memcpy(destination, leaf_node_cell(old_data, i - 1), LEAF_NODE_CELL_SIZE);
         } else {
-            memcpy(destination, leaf_node_cell(new_data, i), LEAF_NODE_CELL_SIZE);
+            memcpy(destination, leaf_node_cell(old_data, i), LEAF_NODE_CELL_SIZE);
         }
     }
 
@@ -174,7 +215,8 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
     if (is_node_root(old_data)) {
         return create_new_root(new_page_num);
     } else {
-        std :: cout << "implement my friend\n";
+        std :: cerr << "implement my friend\n";
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -204,7 +246,7 @@ void Table::leaf_node_insert(Cursor &cursor, uint32_t key, Row *row) {
 }
 
 Cursor Table::leaf_node_find(uint32_t page_num, uint32_t key) {
-    CacheEntry* CEntry = pager.get_page(root_page_num);
+    CacheEntry* CEntry = pager.get_page(page_num);
     char *data = CEntry->data.data();
 
     uint32_t num_cells = *leaf_node_num_cells(data);
@@ -250,7 +292,7 @@ Cursor Table::table_find(uint32_t key) {
     if (get_node_type(CEntry->data.data()) == NodeType::LEAF) {
         return leaf_node_find(root_page_num, key);
     } else {
-        std :: cout << "to implement searching/n";
+        return internal_node_find(root_page_num, key);
     }
 
     // change here
@@ -261,12 +303,12 @@ Cursor Table::table_find(uint32_t key) {
 
 void indent(uint32_t level) {
     for (uint32_t i = 0; i < level; i++) {
-        printf("  ");
+        std :: cout << "  ";
     }
 }
 
 void Table::print_tree(uint32_t page_num, uint32_t indentation_level) {
-    CacheEntry* CEntry = pager.get_page(root_page_num);
+    CacheEntry* CEntry = pager.get_page(page_num);
     char *data = CEntry->data.data();
     uint32_t num_keys, child;
 
@@ -292,11 +334,14 @@ void Table::print_tree(uint32_t page_num, uint32_t indentation_level) {
                     print_tree(child, indentation_level + 1);
 
                     indent(indentation_level + 1);
-                    std :: cout << "- key " << *leaf_node_key(data, i) << "\n";
+                    std :: cout << "- key " << *internal_node_key(data, i) << "\n";
                 }
                 child = *internal_node_right_child(data);
                 print_tree(child, indentation_level + 1);
             }
             break;
+        default:
+            std :: cerr << "Uknown NodeType in print_tree";
+            exit(EXIT_FAILURE);
     }
 }

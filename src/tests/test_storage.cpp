@@ -120,7 +120,6 @@ TEST(StorageTest, basicSortedLeafTest) {
     table.leaf_node_insert(cursor6, row6->id, row6.get());
 
     table.pager.flush_all();
-    table.print_tree(0, 0);
 
     Cursor cursor = table.make_cursor();
     Row *row = nullptr;
@@ -174,4 +173,36 @@ TEST(StorageTest, basicSortedLeafTest) {
     cursor.advance();
 
     ASSERT_EQ(cursor.end_of_table, true);
+}
+
+TEST(StorageTest, justprinttree) {
+    std :: string path = ROOT;
+    path += "testBtree";
+    path += OS_SEP;
+    path += "splitleaf.txt";
+
+    if (os :: fileExists(path)) {
+        os :: removeFile(path);
+    }
+
+    Table table{path.c_str(), 3};
+    initialize_leaf_node(table.pager.get_page(0)->data.data());
+    set_node_root(table.pager.get_page(0)->data.data(), true);
+
+    for (char c = 'a'; c <= 'z'; c ++) {
+        std :: unique_ptr<Row> row = std::make_unique<Row>(Row{static_cast<uint32_t>(c - 'a' + 1), 1, c});
+
+        Cursor cursor = table.table_find(c - 'a' + 1);
+        table.leaf_node_insert(cursor, row->id, row.get());
+
+        std :: cout << "------------\n";
+        // table.pager.flush_all();
+        table.print_tree(0, 0);
+
+    }
+    // table.print_tree(1, 0);
+    // table.print_tree(2, 0);
+    // table.print_tree(3, 0);
+
+    ASSERT_EQ(1, 1);
 }
