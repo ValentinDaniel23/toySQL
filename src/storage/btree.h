@@ -43,6 +43,7 @@ Each page = PAGE_SIZE bytes (e.g., 4096)
 | (only if leaf)                                     |
 |-----------------------------------------------------|
 | num_cells  : uint32_t   (number of key/value pairs)| 6
+| next_leaf  : uint32_t   (the page number of the leaf’s sibling node on the right)| 10
 -------------------------------------------------------
 | INTERNAL NODE HEADER (8 bytes)                     |
 | (only if internal)                                 |
@@ -64,9 +65,12 @@ constexpr uint32_t COMMON_NODE_HEADER_SIZE = NODE_TYPE_SIZE + IS_ROOT_SIZE + PAR
 
 //  LEAF HEADER  //
 constexpr uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t);
+constexpr uint32_t LEAF_NODE_NEXT_LEAF_SIZE = sizeof(uint32_t);
 
 constexpr uint32_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE;
-constexpr uint32_t LEAF_NODE_HEADER_SIZE = LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE;
+constexpr uint32_t LEAF_NODE_NEXT_LEAF_OFFSET = LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE;
+
+constexpr uint32_t LEAF_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE + LEAF_NODE_NEXT_LEAF_SIZE;
 
 //  INTERNAL HEADER  //
 constexpr uint32_t INTERNAL_NODE_NUM_KEYS_SIZE = sizeof(uint32_t);
@@ -74,6 +78,7 @@ constexpr uint32_t INTERNAL_NODE_RIGHT_CHILD_SIZE = sizeof(uint32_t);
 
 constexpr uint32_t INTERNAL_NODE_NUM_KEYS_OFFSET = COMMON_NODE_HEADER_SIZE;
 constexpr uint32_t INTERNAL_NODE_RIGHT_CHILD_OFFSET = INTERNAL_NODE_NUM_KEYS_OFFSET + INTERNAL_NODE_NUM_KEYS_SIZE;
+
 constexpr uint32_t INTERNAL_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE + INTERNAL_NODE_NUM_KEYS_SIZE + INTERNAL_NODE_RIGHT_CHILD_SIZE;
 
 //  LEAF NODE BODY LAYOUT  //

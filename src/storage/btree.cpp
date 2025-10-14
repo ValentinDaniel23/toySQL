@@ -6,6 +6,10 @@ inline uint32_t* leaf_node_num_cells(char* node) {
     return reinterpret_cast<uint32_t *>(node + LEAF_NODE_NUM_CELLS_OFFSET);
 }
 
+inline uint32_t* leaf_node_next_leaf(char* node) {
+    return reinterpret_cast<uint32_t *>(node + LEAF_NODE_NEXT_LEAF_OFFSET);
+}
+
 inline char* leaf_node_cell(char* node, uint32_t cell_num) {
     return node + LEAF_NODE_HEADER_SIZE + cell_num * LEAF_NODE_CELL_SIZE;
 }
@@ -87,6 +91,7 @@ inline void initialize_leaf_node(char* node) {
     set_node_type(node, NodeType::LEAF);
     set_node_root(node, false);
     *leaf_node_num_cells(node) = 0;
+    *leaf_node_next_leaf(node) = 0;
 }
 
 /////////////////////////////////////////////////////////////
@@ -104,10 +109,18 @@ Row* Cursor::value() const {
 
 void Cursor::advance() {
     CacheEntry* CEntry = current_page();
+    char *data = CEntry->data.data();
 
     cell_num += 1;
     if (cell_num >= (*leaf_node_num_cells(CEntry->data.data()))) {
-        end_of_table = true;
+        uint32_t next_page_num = *leaf_node_next_leaf(data);
+
+        if (next_page_num == 0) {
+            end_of_table = true;
+        } else {
+            page_num = next_page_num;
+            cell_num = 0;
+        }
     }
 }
 
@@ -186,6 +199,9 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
 
     initialize_leaf_node(new_data);
 
+    *leaf_node_next_leaf(new_data) = *leaf_node_next_leaf(old_data);
+    *leaf_node_next_leaf(old_data) = new_page_num;
+
     for (int32_t i = LEAF_NODE_MAX_CELLS; i >= 0; i--) {
         char* destination_node;
 
@@ -197,10 +213,11 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
 
         uint32_t index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT;
         char* destination = leaf_node_cell(destination_node, index_within_node);
+        char* destinationValue = leaf_node_value(destination_node, index_within_node);
 
         if (i == cursor.cell_num) {
             std :: array<char, ROW_SIZE> buffer = row->serialize();
-            memcpy(destination + LEAF_NODE_KEY_SIZE, buffer.data(), ROW_SIZE);
+            memcpy(destinationValue, buffer.data(), ROW_SIZE);
             *reinterpret_cast<uint32_t*>(destination) = key;
         } else if (i > cursor.cell_num) {
             memcpy(destination, leaf_node_cell(old_data, i - 1), LEAF_NODE_CELL_SIZE);
@@ -289,14 +306,26 @@ Cursor Table::leaf_node_find(uint32_t page_num, uint32_t key) {
 Cursor Table::table_find(uint32_t key) {
     CacheEntry* CEntry = pager.get_page(root_page_num);
 
-    if (get_node_type(CEntry->data.data()) == NodeType::LEAF) {
-        return leaf_node_find(root_page_num, key);
-    } else {
-        return internal_node_find(root_page_num, key);
+    switch (get_node_type(CEntry->data.data())) {
+        case (NodeType::LEAF):
+            return leaf_node_find(root_page_num, key);
+        case (NodeType::INTERNAL):
+            return internal_node_find(root_page_num, key);
+        default:
+            std :: cerr << "no valid node type in table_find\n";
+            exit(EXIT_FAILURE);
     }
+}
 
-    // change here
-    return make_cursor();
+Cursor Table::table_start() {
+    Cursor cursor = table_find(0);
+
+    CacheEntry* CEntry = pager.get_page(root_page_num);
+    char* data = CEntry->data.data();
+
+    uint32_t num_cells = *leaf_node_num_cells(data);
+    cursor.end_of_table = (num_cells == 0);
+    return cursor;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -341,7 +370,7 @@ void Table::print_tree(uint32_t page_num, uint32_t indentation_level) {
             }
             break;
         default:
-            std :: cerr << "Uknown NodeType in print_tree";
+            std :: cerr << "Unknown NodeType in print_tree";
             exit(EXIT_FAILURE);
     }
 }

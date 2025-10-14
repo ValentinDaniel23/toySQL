@@ -97,9 +97,11 @@ public:
     void create_new_root(uint32_t right_child_page_num);
     void leaf_node_split_and_insert(Cursor& cursor, uint32_t key, Row *row);
     void leaf_node_insert(Cursor& cursor, uint32_t key, Row *row);
-    Cursor table_find(uint32_t key);
+
     Cursor leaf_node_find(uint32_t page_num, uint32_t key);
     Cursor internal_node_find(uint32_t page_num, uint32_t key);
+    Cursor table_find(uint32_t key);
+    Cursor table_start();
 
     void print_tree(uint32_t page_num, uint32_t indentation_level);
 
