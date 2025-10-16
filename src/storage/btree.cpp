@@ -59,6 +59,10 @@ inline uint32_t* internal_node_key(char* node, uint32_t key_num) {
     return reinterpret_cast<uint32_t *>(reinterpret_cast<char *> (internal_node_cell(node, key_num)) + INTERNAL_NODE_CHILD_SIZE);
 }
 
+inline void update_internal_node_key(char* node, uint32_t old_child_index, uint32_t new_key) {
+    *internal_node_key(node, old_child_index) = new_key;
+}
+
 inline uint32_t get_node_max_key(char* node) {
     switch (get_node_type(node)) {
         case NodeType::INTERNAL:
@@ -69,6 +73,10 @@ inline uint32_t get_node_max_key(char* node) {
             std :: cerr << "wrong max key in get_node_max_key";
             exit(EXIT_FAILURE);
     }
+}
+
+inline uint32_t* node_parent(char* node) {
+    return reinterpret_cast<uint32_t *>(node + PARENT_POINTER_OFFSET);
 }
 
 inline bool is_node_root(char* node) {
@@ -126,10 +134,45 @@ void Cursor::advance() {
 
 /////////////////////////////////////////////////////////////
 
-Cursor Table::internal_node_find(uint32_t page_num, uint32_t key) {
-    CacheEntry* CEntry = pager.get_page(page_num);
-    char* data = CEntry->data.data();
-    uint32_t num_keys = *internal_node_num_keys(data);
+void Table::internal_node_insert(uint32_t parent_page_num, uint32_t child_page_num) {
+    CacheEntry* CParent = pager.get_page(parent_page_num);
+    char* parent = CParent->data.data();
+
+    CacheEntry* CChild = pager.get_page(child_page_num);
+    char* child = CChild->data.data();
+
+    uint32_t child_max_key = get_node_max_key(child);
+    uint32_t index = internal_node_find_child(parent, child_max_key);
+
+    uint32_t original_num_keys = *internal_node_num_keys(parent);
+    *internal_node_num_keys(parent) = original_num_keys + 1;
+
+    if (original_num_keys >= INTERNAL_NODE_MAX_CELLS) {
+        std :: cerr << "need to implement\n";
+        exit(EXIT_FAILURE);
+    }
+
+    uint32_t right_child_page_num = *internal_node_right_child(parent);
+    CacheEntry* CRight = pager.get_page(right_child_page_num);
+    char* right_child = CRight->data.data();
+
+    if (child_max_key > get_node_max_key(right_child)) {
+        *internal_node_child(parent, original_num_keys) = right_child_page_num;
+        *internal_node_key(parent, original_num_keys) = get_node_max_key(right_child);
+        *internal_node_right_child(parent) = child_page_num;
+    } else {
+        for (uint32_t i = original_num_keys; i > index; i--) {
+            void* destination = internal_node_cell(parent, i);
+            void* source = internal_node_cell(parent, i - 1);
+            memcpy(destination, source, INTERNAL_NODE_CELL_SIZE);
+        }
+        *internal_node_child(parent, index) = child_page_num;
+        *internal_node_key(parent, index) = child_max_key;
+    }
+}
+
+uint32_t Table::internal_node_find_child(char* node, uint32_t key) {
+    uint32_t num_keys = *internal_node_num_keys(node);
 
     uint32_t ans = num_keys;
 
@@ -139,7 +182,7 @@ Cursor Table::internal_node_find(uint32_t page_num, uint32_t key) {
 
         while (min_index <= max_index) {
             uint32_t index = (min_index + max_index) / 2;
-            uint32_t key_to_right = *internal_node_key(data, index);
+            uint32_t key_to_right = *internal_node_key(node, index);
 
             if (key <= key_to_right) {
                 ans = index;
@@ -152,7 +195,15 @@ Cursor Table::internal_node_find(uint32_t page_num, uint32_t key) {
         }
     }
 
-    uint32_t child_num = *internal_node_child(data, ans);
+    return ans;
+}
+
+Cursor Table::internal_node_find(uint32_t page_num, uint32_t key) {
+    CacheEntry* CEntry = pager.get_page(page_num);
+    char* data = CEntry->data.data();
+
+    uint32_t child_index = internal_node_find_child(data, key);
+    uint32_t child_num = *internal_node_child(data, child_index);
     CacheEntry* CEntryChinld = pager.get_page(child_num);
     char* dataChild = CEntryChinld->data.data();
 
@@ -187,11 +238,14 @@ void Table::create_new_root(uint32_t right_child_page_num) {
     uint32_t left_child_max_key = get_node_max_key(left_child);
     *internal_node_key(root, 0) = left_child_max_key;
     *internal_node_right_child(root) = right_child_page_num;
+    *node_parent(left_child) = root_page_num;
+    *node_parent(right_child) = root_page_num;
 }
 
 void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
     CacheEntry* CEntry = pager.get_page(cursor.page_num);
     char *old_data = CEntry->data.data();
+    uint32_t old_max = get_node_max_key(old_data);
 
     uint32_t new_page_num = pager.get_unused_page();
     CacheEntry* New_CEntry = pager.get_page(new_page_num);
@@ -199,6 +253,7 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
 
     initialize_leaf_node(new_data);
 
+    *node_parent(new_data) = *node_parent(old_data);
     *leaf_node_next_leaf(new_data) = *leaf_node_next_leaf(old_data);
     *leaf_node_next_leaf(old_data) = new_page_num;
 
@@ -232,8 +287,14 @@ void Table::leaf_node_split_and_insert(Cursor &cursor, uint32_t key, Row *row) {
     if (is_node_root(old_data)) {
         return create_new_root(new_page_num);
     } else {
-        std :: cerr << "implement my friend\n";
-        exit(EXIT_FAILURE);
+        uint32_t parent_page_num = *node_parent(old_data);
+        uint32_t new_max = get_node_max_key(old_data);
+
+        CacheEntry* CParent = pager.get_page(cursor.page_num);
+        char* parent = CParent->data.data();
+        update_internal_node_key(parent, internal_node_find_child(parent, old_max), new_max);
+        internal_node_insert(parent_page_num, new_page_num);
+        return;
     }
 }
 
@@ -298,6 +359,8 @@ Cursor Table::leaf_node_find(uint32_t page_num, uint32_t key) {
             min_index = index + 1;
         }
     }
+
+
 
     cursor.cell_num = ans;
     return cursor;

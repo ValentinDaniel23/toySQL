@@ -216,3 +216,45 @@ TEST(StorageTest, splitLeaf) {
 
     table.pager.flush_all();
 }
+
+TEST(StorageTest, multipleInternalKeys) {
+    std :: string path = ROOT;
+    path += "testBtree";
+    path += OS_SEP;
+    path += "mIK.txt";
+
+    if (os :: fileExists(path)) {
+        os :: removeFile(path);
+    }
+
+    Table table{path.c_str(), 3};
+    initialize_leaf_node(table.pager.get_page(0)->data.data());
+    set_node_root(table.pager.get_page(0)->data.data(), true);
+
+    for (char c = 'a'; c <= 'z'; c ++) {
+        std :: unique_ptr<Row> row = std::make_unique<Row>(Row{static_cast<uint32_t>(c - 'a'), 1, c});
+
+        Cursor cursor = table.table_find(c - 'a' + 1);
+        table.leaf_node_insert(cursor, row->id, row.get());
+    }
+
+    // std :: cout << "------------\n";
+    // table.print_tree(0, 0);
+
+    Cursor cursor = table.table_start();
+    uint32_t index = 0;
+
+    while (!cursor.end_of_table) {
+        Row *row = cursor.value();
+        // std :: cout << "( " << row -> id << " : " << static_cast<uint32_t>(row -> text_size) << " : " << row -> text.data() << " )\n";
+
+        ASSERT_EQ(row->id, index);
+        ASSERT_EQ(row->text_size, 1);
+        ASSERT_STREQ(row -> text.data(), std :: string(1, 'a' + index).c_str() );
+
+        cursor.advance();
+        index ++;
+    }
+
+    table.pager.flush_all();
+}

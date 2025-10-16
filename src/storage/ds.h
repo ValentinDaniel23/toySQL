@@ -94,6 +94,9 @@ public:
 
     Table(const char* filename, size_t cache_size) : pager(filename, cache_size), filename{filename} {}
 
+    uint32_t internal_node_find_child(char* node, uint32_t key);
+
+    void internal_node_insert(uint32_t parent_page_num, uint32_t child_page_num);
     void create_new_root(uint32_t right_child_page_num);
     void leaf_node_split_and_insert(Cursor& cursor, uint32_t key, Row *row);
     void leaf_node_insert(Cursor& cursor, uint32_t key, Row *row);

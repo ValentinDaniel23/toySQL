@@ -99,4 +99,6 @@ constexpr uint32_t INTERNAL_NODE_CHILD_SIZE = sizeof(uint32_t);
 
 constexpr uint32_t INTERNAL_NODE_CELL_SIZE = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE;
 
+constexpr uint32_t INTERNAL_NODE_MAX_CELLS = 3;
+
 #endif //TOYSQL_BTREE_H
