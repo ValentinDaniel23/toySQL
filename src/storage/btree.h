@@ -1,7 +1,9 @@
 #ifndef TOYSQL_BTREE_H
 #define TOYSQL_BTREE_H
 
-constexpr uint32_t FILE_PAGES_NUM = 128;
+#define INVALID_PAGE_NUM UINT32_MAX
+
+constexpr uint32_t FILE_PAGES_NUM = 1028;
 constexpr uint32_t PAGE_SIZE = 4096;
 
 struct Row {
